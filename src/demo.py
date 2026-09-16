@@ -3,7 +3,14 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from .risk import component_volatility_risk, historical_var_cvar, max_drawdown, monte_carlo_pnl, portfolio_returns, stress_pnl
+from .risk import (
+    component_volatility_risk,
+    historical_var_cvar,
+    max_drawdown,
+    monte_carlo_pnl,
+    portfolio_returns,
+    stress_pnl,
+)
 
 
 def synthetic_returns(rows: int = 1000, assets: int = 4, seed: int = 42) -> pd.DataFrame:
