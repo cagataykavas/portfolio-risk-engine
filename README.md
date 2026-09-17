@@ -37,9 +37,34 @@ flowchart LR
 - annualized return and volatility;
 - maximum drawdown and simple Sharpe ratio (`rf=0` for the demo);
 - finite-difference historical-VaR contribution decomposition;
-- factor-loading stress tests for risk-off, inflation and liquidity shocks.
+- factor-loading stress tests for risk-off, inflation and liquidity shocks;
+- VaR exception backtesting with Kupiec coverage, Christoffersen independence and joint conditional coverage.
 
 The point of implementing three VaR methods side by side is not to pretend one is universally correct. It makes distributional assumptions and model risk visible: historical VaR depends on the observed sample, parametric VaR assumes a normal approximation, and Monte Carlo depends on the estimated joint return distribution.
+
+## VaR model backtesting
+
+A risk estimate is not validated merely because the calculation runs. `src/var_backtesting.py` compares realized losses with a sequence of out-of-sample VaR forecasts:
+
+```python
+from src.var_backtesting import backtest_var
+
+result = backtest_var(
+    realized_losses,
+    daily_var_forecasts,
+    confidence=0.99,
+    significance=0.05,
+)
+print(result.to_dict())
+```
+
+The report separates three questions:
+
+- **Kupiec unconditional coverage:** does the observed exception rate match the expected tail probability?
+- **Christoffersen independence:** are exceptions independent, or do they cluster across adjacent periods?
+- **Conditional coverage:** does the model jointly satisfy the expected rate and independence assumptions?
+
+Transition counts (`n00`, `n01`, `n10`, `n11`), likelihood-ratio statistics, asymptotic chi-square p-values and explicit pass/fail decisions are returned as JSON-ready evidence. These are statistical diagnostics, not regulatory approval; small samples and structural breaks still require judgement.
 
 ## Quick start
 
@@ -113,6 +138,7 @@ GitHub Actions also runs a reduced Monte Carlo demo and builds the API container
 - why diversification depends on covariance rather than asset count;
 - component / marginal risk contribution;
 - model-risk assumptions and tail limitations;
+- VaR exception coverage, clustering and backtesting interpretation;
 - scenario analysis vs probabilistic VaR;
 - drawdown versus volatility;
 - deterministic simulations and reproducibility;
@@ -120,4 +146,4 @@ GitHub Actions also runs a reduced Monte Carlo demo and builds the API container
 
 ## Portfolio signal
 
-**Python · NumPy · Pandas · Monte Carlo · VaR/CVaR · covariance · stress testing · risk attribution · FastAPI · Docker · CI/CD**
+**Python · NumPy · Pandas · Monte Carlo · VaR/CVaR · Kupiec POF · Christoffersen independence · covariance · stress testing · risk attribution · FastAPI · Docker · CI/CD**
