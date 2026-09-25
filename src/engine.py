@@ -12,6 +12,7 @@ from .advanced_risk import (
     monte_carlo_measure,
     parametric_var_cvar,
 )
+from .covariance_admission import admit_covariance
 from .risk import max_drawdown, normalize_weights, portfolio_returns
 from .scenarios import DEFAULT_SCENARIOS, scenario_pnl
 
@@ -48,7 +49,23 @@ class PortfolioRiskEngine:
 
         historical = historical_measure(selected, weights, confidence)
         parametric = parametric_var_cvar(float(p.mean()), float(p.std(ddof=1)), confidence)
-        monte_carlo = monte_carlo_measure(selected, weights, confidence, monte_carlo_scenarios, seed)
+        covariance_admission = admit_covariance(
+            selected.cov().to_numpy(),
+            asset_ids=list(spec.assets),
+            observation_count=len(selected),
+            estimator_id="pandas-sample-covariance-ddof-1",
+        )
+        if not covariance_admission.report.accepted:
+            codes = ",".join(covariance_admission.report.reason_codes)
+            raise ValueError(f"covariance admission rejected: {codes}")
+        monte_carlo = monte_carlo_measure(
+            selected,
+            weights,
+            confidence,
+            monte_carlo_scenarios,
+            seed,
+            covariance=covariance_admission.covariance,
+        )
         contributions = finite_difference_var_contributions(selected, weights, confidence)
 
         stress_results: list[dict[str, object]] = []
@@ -65,6 +82,7 @@ class PortfolioRiskEngine:
             "sharpe_zero_rf": sharpe,
             "max_drawdown": max_drawdown(p),
             "risk_measures": [historical.as_dict(), parametric.as_dict(), monte_carlo.as_dict()],
+            "covariance_admission": covariance_admission.report.as_dict(),
             "historical_var_contributions": contributions,
             "stress_tests": stress_results,
         }
