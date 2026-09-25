@@ -63,10 +63,12 @@ def monte_carlo_measure(
     confidence: float = 0.95,
     scenarios: int = 50_000,
     seed: int = 42,
+    covariance: np.ndarray | None = None,
 ) -> RiskMeasure:
+    active_covariance = returns.cov().to_numpy() if covariance is None else covariance
     pnl = monte_carlo_pnl(
         returns.mean().to_numpy(),
-        returns.cov().to_numpy(),
+        active_covariance,
         weights,
         scenarios=scenarios,
         seed=seed,
