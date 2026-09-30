@@ -3,6 +3,7 @@ from __future__ import annotations
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+
 from src.engine import PortfolioRiskEngine, PortfolioSpec
 from src.synthetic import FACTOR_LOADINGS, synthetic_returns
 

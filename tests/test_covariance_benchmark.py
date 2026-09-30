@@ -5,6 +5,7 @@ import json
 import numpy as np
 import pandas as pd
 import pytest
+
 from src.covariance_benchmark import (
     BenchmarkConfig,
     benchmark_covariance_estimators,
