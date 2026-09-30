@@ -41,6 +41,27 @@ flowchart LR
 
 The point of implementing three VaR methods side by side is not to pretend one is universally correct. It makes distributional assumptions and model risk visible: historical VaR depends on the observed sample, parametric VaR assumes a normal approximation, and Monte Carlo depends on the estimated joint return distribution.
 
+## Leakage-safe covariance estimator benchmark
+
+`src/covariance_benchmark.py` compares sample covariance, governed diagonal shrinkage and EWMA covariance without choosing a model on the same observations used for the final claim. At each forecast origin it trains on a fixed trailing window ending at `t-1`, scores the one-step portfolio variance at `t`, selects the lowest Gaussian negative log-likelihood on a selection period, and reports performance on a later untouched evaluation period.
+
+```bash
+python -m src.covariance_benchmark \
+  --rows 650 \
+  --window 252 \
+  --selection-observations 126 \
+  --evaluation-observations 126
+```
+
+The JSON artifact includes fixed policy parameters, split-level scores, evaluation regret, the selected estimator and deterministic SHA-256 evidence. It intentionally excludes individual returns. Exit codes distinguish acceptance (`0`), malformed evidence or policy (`2`), and a valid benchmark that exceeds the evaluation-regret guardrail (`3`).
+
+Production boundaries:
+
+- this is a one-step portfolio-variance benchmark, not full multivariate density validation;
+- shrinkage intensity and EWMA decay are governed inputs, not tuned on the evaluation period;
+- selection-period success can still fail under regime change, so the evaluation gate is evidence for a release decision rather than a permanent model endorsement;
+- real deployments should run the same point-in-time protocol on versioned market-data snapshots and retain the artifact with the model release.
+
 ## Quick start
 
 ```bash
@@ -116,6 +137,7 @@ GitHub Actions also runs a reduced Monte Carlo demo and builds the API container
 - scenario analysis vs probabilistic VaR;
 - drawdown versus volatility;
 - deterministic simulations and reproducibility;
+- point-in-time covariance estimation and honest model selection;
 - exposing quantitative analytics behind an API without hiding the underlying math.
 
 ## Portfolio signal
