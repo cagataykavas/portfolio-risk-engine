@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
-
 from app.api import app
+from fastapi.testclient import TestClient
 from src.engine import PortfolioRiskEngine, PortfolioSpec
 from src.synthetic import FACTOR_LOADINGS, synthetic_returns
 
