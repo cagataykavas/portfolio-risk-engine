@@ -12,7 +12,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt
-      - run: ruff check .
+      - run: ruff check --config "lint.isort.known-first-party=['app','src']" .
       - run: python -m pytest -q
       - run: python -m src.cli --rows 300 --mc-scenarios 3000
   container:
