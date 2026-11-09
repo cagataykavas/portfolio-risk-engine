@@ -36,6 +36,41 @@ Asset identifiers are replaced with stable SHA-256 references, and scenario rows
 into the report. Inputs fail closed on duplicate or malformed identifiers, shape mismatches,
 non-finite values, unsupported sizes, an inadequate effective tail sample, or non-positive tail ES.
 
+## Dependence-aware allocation uncertainty
+
+`src.expected_shortfall_bootstrap` adds a circular moving-block bootstrap around the allocation. It
+resamples consecutive return blocks so short-range serial dependence and clustered losses are not
+silently replaced by an IID assumption. The audit returns percentile intervals for portfolio ES
+and every signed component ES, then applies two prespecified release checks:
+
+- each component interval must be narrow relative to the point portfolio ES; and
+- each component interval must stay strictly on one side of zero when sign stability is required.
+
+```python
+from src.expected_shortfall_bootstrap import BootstrapPolicy, audit_expected_shortfall_bootstrap
+
+uncertainty = audit_expected_shortfall_bootstrap(
+    asset_ids=("global-equity", "credit", "rates-hedge"),
+    weights=(0.55, 0.35, -0.10),
+    scenario_returns=ordered_return_matrix,
+    confidence=0.975,
+    min_effective_tail_scenarios=20,
+    policy=BootstrapPolicy(
+        block_size=20,
+        replicates=500,
+        interval_confidence=0.95,
+        max_component_interval_width_as_es=1.0,
+        require_sign_stability=True,
+        seed=42,
+    ),
+)
+```
+
+The exact ordered matrix, canonical asset/weight configuration, allocation inputs, and bootstrap
+policy are bound into SHA-256 commitments. Reports contain hashed asset references and aggregate
+intervals only. Work is capped by `max_resampled_rows`; invalid tail allocations in any replicate
+are a blocking finding rather than silently discarded from the promotion decision.
+
 ## Trust boundary and limitations
 
 This utility allocates the supplied scenario distribution; it does not certify scenario lineage,
@@ -44,3 +79,10 @@ still sensitive to confidence, window choice, regime coverage, and sparse tails.
 mass is a deterministic sufficiency gate, not a statistical validation claim. Production callers
 should bind the return matrix to immutable, authenticated provenance and calibrate confidence and
 sample thresholds by book mandate.
+
+Bootstrap intervals are percentile diagnostics, not exact finite-sample guarantees. Their quality
+depends on a preregistered block size, enough approximately stationary blocks, and an ordered
+return sequence. Circular wrapping is a boundary convention; it does not solve structural breaks,
+long memory, asynchronous markets, multiple-testing across books, or scenario provenance. Compare
+a small governed block-size grid before promotion rather than choosing the best-looking interval
+after observing results.
