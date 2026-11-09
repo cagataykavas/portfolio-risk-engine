@@ -38,6 +38,7 @@ flowchart LR
 - maximum drawdown and simple Sharpe ratio (`rf=0` for the demo);
 - finite-difference historical-VaR contribution decomposition;
 - tie-aware historical Expected Shortfall allocation with signed asset contributions;
+- moving-block bootstrap intervals and stability gates for component Expected Shortfall;
 - factor-loading stress tests for risk-off, inflation and liquidity shocks.
 
 The point of implementing three VaR methods side by side is not to pretend one is universally correct. It makes distributional assumptions and model risk visible: historical VaR depends on the observed sample, parametric VaR assumes a normal approximation, and Monte Carlo depends on the estimated joint return distribution.
