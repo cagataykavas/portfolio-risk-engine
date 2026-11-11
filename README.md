@@ -8,7 +8,8 @@ The repository uses deterministic synthetic returns so it remains reproducible a
 
 ```mermaid
 flowchart LR
-    R[Return matrix] --> P[Portfolio specification]
+    R[Return matrix] --> A[Fail-closed admission]
+    A --> P[Portfolio specification]
     P --> H[Historical VaR / CVaR]
     P --> N[Parametric normal VaR / CVaR]
     P --> M[Monte Carlo simulation]
@@ -30,6 +31,8 @@ flowchart LR
 ## Implemented analytics
 
 - normalized portfolio weights;
+- fail-closed return-panel admission with bounded dimensions, ordered unique indexes,
+  finite observations and a reproducible SHA-256 content fingerprint;
 - portfolio return series and covariance-driven Monte Carlo draws;
 - **historical VaR and Expected Shortfall / CVaR**;
 - **Gaussian parametric VaR/CVaR** with configurable confidence;
@@ -65,6 +68,25 @@ curl http://localhost:8000/demo
 ```
 
 `POST /risk` accepts an asset list, weights and optionally a custom return matrix. If no matrix is supplied, the service uses the deterministic synthetic market generator.
+
+## Return-panel admission
+
+Every engine path now admits the input panel before estimating covariance or
+tail risk. The default policy requires 60 to 1,000,000 ordered observations,
+unique asset identifiers and index values, finite numeric returns and weights,
+at most 256 assets and five million selected cells, and no simple return below
+-100%. Missing values are rejected rather than silently dropped, preventing
+different assets from being evaluated over an implicit common subset.
+
+Successful results include a `return_panel_admission` object with the policy,
+shape, period bounds and a SHA-256 fingerprint over the exact ordered index,
+asset identifiers and IEEE-754 return values. The report omits the return
+observations themselves, so operators can bind downstream risk results to an
+input panel without copying market data into logs.
+
+The fingerprint is evidence of input identity, not proof that a data source is
+accurate or licensed. The gate also does not detect stale prices, corporate
+action errors or regime shifts; those require upstream data-quality controls.
 
 ## Synthetic market generator
 
@@ -116,6 +138,7 @@ GitHub Actions also runs a reduced Monte Carlo demo and builds the API container
 - scenario analysis vs probabilistic VaR;
 - drawdown versus volatility;
 - deterministic simulations and reproducibility;
+- fail-closed time-series validation and evidence-oriented input lineage;
 - exposing quantitative analytics behind an API without hiding the underlying math.
 
 ## Portfolio signal
