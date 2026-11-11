@@ -12,6 +12,7 @@ from .advanced_risk import (
     monte_carlo_measure,
     parametric_var_cvar,
 )
+from .return_panel import ReturnPanelPolicy, admit_return_panel
 from .risk import max_drawdown, normalize_weights, portfolio_returns
 from .scenarios import DEFAULT_SCENARIOS, scenario_pnl
 
@@ -35,11 +36,15 @@ class PortfolioRiskEngine:
         monte_carlo_scenarios: int = 30_000,
         seed: int = 42,
         factor_loadings: dict[str, dict[str, float]] | None = None,
+        return_panel_policy: ReturnPanelPolicy | None = None,
     ) -> dict[str, Any]:
-        missing = [asset for asset in spec.assets if asset not in returns.columns]
-        if missing:
-            raise ValueError(f"missing return columns: {missing}")
-        selected = returns.loc[:, list(spec.assets)].dropna()
+        admission = admit_return_panel(
+            returns,
+            spec.assets,
+            spec.weights,
+            policy=return_panel_policy,
+        )
+        selected = admission.panel
         weights = spec.normalized()
         p = portfolio_returns(selected, weights)
         annualized_return = float(p.mean() * 252)
@@ -67,4 +72,5 @@ class PortfolioRiskEngine:
             "risk_measures": [historical.as_dict(), parametric.as_dict(), monte_carlo.as_dict()],
             "historical_var_contributions": contributions,
             "stress_tests": stress_results,
+            "return_panel_admission": admission.report.as_dict(),
         }
